@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Azarath Metrion Zinthos</title>
+
+  <!-- Old-style gothic serif pair (falls back to Georgia if offline) -->
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!--
+    HIDDEN AUDIO
+    No "controls" attribute + "hidden" => there is no player UI at all.
+    script.js drives it entirely through the HTMLAudioElement API.
+  -->
+  <audio id="spell" src="spell.m4a" preload="auto" hidden></audio>
+
+  <!-- Everything inside #world shakes together -->
+  <main id="world">
+
+    <!-- Layer 0: cosmic dimension (invisible until the climax) -->
+    <div class="cosmos" aria-hidden="true">
+      <div class="stars" id="stars"></div>
+    </div>
+
+    <!-- Layer 1: particle canvas (ambient motes, energy spiral, sparks) -->
+    <canvas id="fx" aria-hidden="true"></canvas>
+
+    <!-- Layer 2: portal rift + shockwave rings (climax only) -->
+    <div class="rift" aria-hidden="true"></div>
+    <div class="shockwave" aria-hidden="true"></div>
+    <div class="shockwave late" aria-hidden="true"></div>
+
+    <!-- Layer 3: the stage -->
+    <section class="stage">
+
+      <!-- The incantation; each word lights up as the spell is spoken -->
+      <header class="incantation glass" id="incantation">
+        <span class="word">Azarath</span>
+        <span class="word">Metrion</span>
+        <span class="word">Zinthos</span>
+      </header>
+
+      <!-- The rune circle. Static shapes are here; ticks, runes and star
+           polygons are generated in script.js (buildSigil). -->
+      <div class="sigil" id="sigil">
+        <div class="halo"></div>
+        <svg class="sigil-svg" viewBox="-300 -300 600 600" aria-hidden="true">
+          <defs>
+            <radialGradient id="coreGrad">
+              <stop offset="0"   stop-color="#ffffff"/>
+              <stop offset=".35" stop-color="#e9d5ff"/>
+              <stop offset=".7"  stop-color="#9333ea"/>
+              <stop offset="1"   stop-color="#9333ea" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+
+          <!-- Outer ring: tick marks + runes -->
+          <g id="ringOuter" class="ring">
+            <circle r="290"/>
+            <circle r="268" class="dash"/>
+            <circle r="222"/>
+            <g id="ticks"></g>
+            <g id="runes"></g>
+          </g>
+
+          <!-- Middle ring: hexagram -->
+          <g id="ringMid" class="ring">
+            <circle r="212"/>
+            <circle r="186" class="dash"/>
+            <g id="hexagram"></g>
+          </g>
+
+          <!-- Inner ring: pentagram with node orbs -->
+          <g id="ringInner" class="ring">
+            <circle r="150"/>
+            <g id="pentagram"></g>
+            <g id="pentaNodes"></g>
+          </g>
+
+          <!-- Core: a watching eye -->
+          <g id="core">
+            <circle r="64" fill="url(#coreGrad)" opacity=".85"/>
+            <path class="eye" d="M-38 0 Q0 -30 38 0 Q0 30 -38 0 Z"/>
+            <circle class="pupil" r="9"/>
+          </g>
+        </svg>
+      </div>
+
+      <!-- The only control on the page -->
+      <footer class="altar">
+        <button id="castBtn" class="cast" type="button" aria-disabled="false">
+          <span id="castLabel">Cast Spell</span>
+        </button>
+        <p id="hint" class="hint" role="status" aria-live="polite"></p>
+      </footer>
+    </section>
+
+    <!-- Layer 4: Raven's soul-self (appears at the climax and swells past the screen) -->
+    <div class="soul" aria-hidden="true">
+      <svg viewBox="0 0 800 600">
+        <defs>
+          <linearGradient id="wingGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0"   stop-color="#05000c"/>
+            <stop offset=".6"  stop-color="#1c0a3d"/>
+            <stop offset="1"   stop-color="#6d28d9"/>
+          </linearGradient>
+          <radialGradient id="aura" cx=".5" cy=".5" r=".5">
+            <stop offset="0"  stop-color="#a855f7" stop-opacity=".65"/>
+            <stop offset=".6" stop-color="#5b21b6" stop-opacity=".25"/>
+            <stop offset="1"  stop-color="#5b21b6" stop-opacity="0"/>
+          </radialGradient>
+          <filter id="soulGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="7" result="blur"/>
+            <feMerge>
+              <feMergeNode in="blur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+          <!-- One wing, mirrored with <use> -->
+          <path id="wing" d="M450 250 C520 190 620 120 760 60
+                             C735 110 720 130 700 150 C725 150 735 148 750 145
+                             C715 190 690 205 660 215 C685 220 700 222 715 222
+                             C680 260 640 275 600 280 C620 288 635 292 650 295
+                             C600 330 540 340 480 350 C460 320 452 290 450 250 Z"/>
+        </defs>
+
+        <circle cx="400" cy="300" r="300" fill="url(#aura)"/>
+
+        <g filter="url(#soulGlow)" stroke="#c77dff" stroke-width="2" stroke-linejoin="round">
+          <use href="#wing" fill="url(#wingGrad)"/>
+          <use href="#wing" fill="url(#wingGrad)" transform="translate(800 0) scale(-1 1)"/>
+          <!-- tail -->
+          <path d="M370 440 L385 585 L400 545 L415 585 L430 440 Z" fill="#0a0014"/>
+          <!-- head + body -->
+          <path d="M400 110 C362 128 346 178 352 232 C334 296 346 380 400 470
+                   C454 380 466 296 448 232 C454 178 438 128 400 110 Z" fill="#0a0014"/>
+          <!-- beak -->
+          <path d="M386 238 L400 294 L414 238 Z" fill="#12001f"/>
+        </g>
+
+        <!-- Four eyes -->
+        <g class="soul-eyes" fill="#fff">
+          <ellipse cx="381" cy="184" rx="7"  ry="3.5" transform="rotate(-14 381 184)"/>
+          <ellipse cx="419" cy="184" rx="7"  ry="3.5" transform="rotate(14 419 184)"/>
+          <ellipse cx="374" cy="210" rx="11" ry="5"   transform="rotate(-14 374 210)"/>
+          <ellipse cx="426" cy="210" rx="11" ry="5"   transform="rotate(14 426 210)"/>
+        </g>
+      </svg>
+    </div>
+  </main>
+
+  <!-- Climax flash (outside #world so it never shakes) -->
+  <div class="flash" aria-hidden="true"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>

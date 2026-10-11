@@ -1,0 +1,427 @@
+/* ==========================================================================
+   AZARATH METRION ZINTHOS — style.css
+   Body state classes (set by script.js):
+     (none)     idle, waiting for the spell
+     .charging  audio is playing, energy is building
+     .climax    audio ended: portal, flash, soul-self, sparks
+     .done      climax has settled; "Cast again" is offered
+   ========================================================================== */
+
+/* ---------- Design tokens ---------- */
+:root {
+  --void:      #05010c;
+  --night:     #120622;
+  --violet:    #7b2cff;
+  --amethyst:  #a855f7;
+  --orchid:    #c77dff;
+  --mist:      #e9d5ff;
+  --rose:      #ff9ebf;
+
+  --font-display: 'IM Fell English SC', 'Palatino Linotype', Georgia, serif;
+  --font-body:    'IM Fell English', Georgia, serif;
+}
+
+/* ---------- Reset / base ---------- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+
+body {
+  overflow: hidden;
+  color: var(--mist);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  background:
+    radial-gradient(ellipse at 50% 45%, #1f0b3d 0%, #0c0419 48%, var(--void) 100%);
+}
+
+/* Soft vignette that sits above the world but never blocks clicks */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, .75) 100%);
+}
+
+/* ---------- World (shaken by JS) ---------- */
+#world {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  will-change: transform;
+}
+
+#fx {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   COSMOS (background dimension rift) — snaps on fast, fades out slowly
+   ========================================================================== */
+.cosmos {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1.8s ease;
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(160, 80, 255, .55) 0%, rgba(60, 10, 120, .45) 35%, transparent 72%),
+    radial-gradient(circle at 18% 25%, rgba(255, 80, 200, .18), transparent 38%),
+    radial-gradient(circle at 82% 72%, rgba(80, 120, 255, .22), transparent 40%),
+    #05010c;
+}
+body.climax .cosmos { opacity: 1; transition-duration: .08s; }
+
+/* Slowly turning nebula arms */
+.cosmos::before {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 170vmax; height: 170vmax;
+  margin: -85vmax 0 0 -85vmax;
+  background: conic-gradient(from 0deg,
+    transparent, rgba(123, 44, 255, .35), transparent 25%,
+    rgba(255, 61, 180, .2) 50%, transparent 75%, rgba(123, 44, 255, .35));
+  -webkit-mask-image: radial-gradient(circle, transparent 5%, #000 30%, transparent 62%);
+          mask-image: radial-gradient(circle, transparent 5%, #000 30%, transparent 62%);
+  animation: spin 45s linear infinite;
+}
+
+/* Stars: one 1px element, many box-shadows (generated in JS) */
+.stars {
+  position: absolute;
+  top: 0; left: 0;
+  width: 1px; height: 1px;
+  background: #fff;
+  animation: twinkle 4s ease-in-out infinite alternate;
+}
+
+/* ==========================================================================
+   STAGE LAYOUT — sigil is dead-centre so every FX lines up with it
+   ========================================================================== */
+.stage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+/* ---------- Glassmorphism ---------- */
+.glass {
+  background: linear-gradient(160deg, rgba(110, 40, 200, .22), rgba(30, 10, 60, .35));
+  border: 1px solid rgba(199, 125, 255, .28);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  box-shadow:
+    0 0 30px rgba(123, 44, 255, .25),
+    inset 0 0 22px rgba(199, 125, 255, .12);
+}
+
+/* ---------- Incantation (top) ---------- */
+.incantation {
+  position: absolute;
+  top: max(3.5vh, env(safe-area-inset-top));
+  inset-inline: 0;
+  margin-inline: auto;
+  width: fit-content;
+  max-width: 92vw;
+  padding: .7rem 1.8rem;
+  border-radius: 999px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .2rem 1.1rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.15rem, 4.4vw, 1.9rem);
+  letter-spacing: .07em;
+}
+
+.word {
+  color: rgba(233, 213, 255, .32);
+  transition: color .6s ease, text-shadow .6s ease;
+}
+.word.lit {
+  color: #fff;
+  text-shadow: 0 0 10px var(--orchid), 0 0 30px var(--violet);
+}
+
+/* ---------- Sigil (centre) ---------- */
+.sigil {
+  --power: 0;                              /* 0..1, driven by script.js */
+  --sigil: min(88vw, 54vh, 560px);
+  position: relative;
+  isolation: isolate;
+  width: var(--sigil);
+  aspect-ratio: 1;
+  transition: opacity .5s ease, transform .9s cubic-bezier(.2, .8, .2, 1);
+}
+
+/* Glow grows with --power */
+.sigil-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter:
+    drop-shadow(0 0 calc(4px + var(--power) * 22px) rgba(168, 85, 247, calc(.45 + var(--power) * .55)))
+    drop-shadow(0 0 calc(var(--power) * 60px) rgba(123, 44, 255, calc(var(--power) * .9)));
+}
+
+.halo {
+  position: absolute;
+  inset: -18%;
+  z-index: -1;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle,
+    rgba(168, 85, 247, calc(.18 + var(--power) * .5)) 0%,
+    rgba(76, 29, 149, calc(.12 + var(--power) * .3)) 40%,
+    transparent 68%);
+  transform: scale(calc(.9 + var(--power) * .35));
+}
+
+/* SVG artwork */
+.ring circle,
+.ring polygon,
+.ring line {
+  fill: none;
+  stroke: var(--orchid);
+  stroke-width: 1.4;
+}
+.ring .dash  { stroke-dasharray: 2 7; opacity: .8; }
+.tick        { opacity: .7; }
+.tick-long   { stroke-width: 2.4 !important; opacity: 1; }
+.rune {
+  fill: var(--mist);
+  font-size: 22px;
+  text-anchor: middle;
+  opacity: .9;
+  font-family: 'Noto Sans Runic', 'Segoe UI Symbol', 'Arial Unicode MS', serif;
+}
+.node  { fill: var(--void); stroke: var(--mist); stroke-width: 1.6; }
+.eye   { fill: rgba(5, 1, 12, .75); stroke: #fff; stroke-width: 2; }
+.pupil { fill: #fff; }
+
+/* After the climax: sigil bursts outward, then lingers as a faint ghost */
+body.climax .sigil { opacity: 0; transform: scale(1.6); transition: opacity .12s ease-out, transform .25s ease-out; }
+body.done   .sigil { opacity: .2; transform: scale(1);   transition: opacity .9s ease, transform .9s ease; }
+
+/* ---------- Cast button (bottom) ---------- */
+.altar {
+  position: absolute;
+  bottom: max(4vh, env(safe-area-inset-bottom));
+  inset-inline: 0;
+  margin-inline: auto;
+  width: fit-content;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .7rem;
+  transition: opacity .6s ease, transform .6s ease;
+}
+/* Hidden while the climax plays, returns when it settles */
+body.climax:not(.done) .altar {
+  transition-duration: .1s;
+  opacity: 0;
+  transform: translateY(14px);
+  pointer-events: none;
+}
+
+.cast {
+  position: relative;
+  padding: .85rem 2.8rem;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  letter-spacing: .12em;
+  color: #fff;
+  cursor: pointer;
+  border-radius: 999px;
+  border: 1px solid rgba(199, 125, 255, .55);
+  background: linear-gradient(180deg, rgba(123, 44, 255, .45), rgba(60, 12, 120, .35));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  text-shadow: 0 0 10px rgba(233, 213, 255, .8);
+  box-shadow: 0 0 18px rgba(123, 44, 255, .55), inset 0 0 14px rgba(199, 125, 255, .25);
+  transition: transform .35s ease, box-shadow .35s ease, opacity .4s ease;
+}
+.cast:hover,
+.cast:focus-visible {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow:
+    0 0 34px rgba(168, 85, 247, .9),
+    0 0 90px rgba(123, 44, 255, .5),
+    inset 0 0 22px rgba(233, 213, 255, .4);
+}
+.cast:focus-visible { outline: 2px solid var(--mist); outline-offset: 5px; }
+
+/* Idle invitation: a ring that breathes outward */
+.cast::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  border: 1px solid rgba(199, 125, 255, .4);
+  pointer-events: none;
+  animation: ring-pulse 3s ease-out infinite;
+}
+
+/* Locked while casting */
+.cast[aria-disabled="true"] { opacity: .5; pointer-events: none; }
+.cast[aria-disabled="true"]::before { animation: none; opacity: 0; }
+
+.hint {
+  min-height: 1.3em;
+  max-width: 80vw;
+  text-align: center;
+  font-style: italic;
+  font-size: .98rem;
+  color: var(--rose);
+}
+
+/* ==========================================================================
+   CLIMAX ELEMENTS
+   ========================================================================== */
+
+/* ---------- Portal rift ---------- */
+.rift {
+  --rift: min(60vmin, 520px);
+  position: absolute;
+  left: 50%; top: 50%;
+  width: var(--rift);
+  height: var(--rift);
+  margin: calc(var(--rift) / -2) 0 0 calc(var(--rift) / -2);
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(circle,
+    #000 0 28%, #1a0338 40%, #7b2cff 52%, rgba(199, 125, 255, .6) 56%, transparent 68%);
+  box-shadow: 0 0 120px 40px rgba(123, 44, 255, .55);
+}
+/* Spinning light ring around the portal's lip */
+.rift::before {
+  content: "";
+  position: absolute;
+  inset: -12%;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg,
+    transparent, rgba(233, 213, 255, .9), transparent 30%,
+    rgba(199, 125, 255, .8) 55%, transparent 80%);
+  -webkit-mask: radial-gradient(circle, transparent 54%, #000 58%, #000 62%, transparent 68%);
+          mask: radial-gradient(circle, transparent 54%, #000 58%, #000 62%, transparent 68%);
+  animation: spin 1.6s linear infinite;
+}
+body.climax .rift { animation: rift-open 4.5s cubic-bezier(.05, .8, .2, 1) forwards; }
+
+/* ---------- Shockwave rings ---------- */
+.shockwave {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 200px; height: 200px;
+  margin: -100px 0 0 -100px;
+  border-radius: 50%;
+  border: 3px solid rgba(233, 213, 255, .9);
+  box-shadow: 0 0 40px 10px rgba(168, 85, 247, .8), inset 0 0 40px 10px rgba(168, 85, 247, .6);
+  opacity: 0;
+  pointer-events: none;
+}
+.shockwave.late { border-width: 2px; border-color: rgba(199, 125, 255, .8); }
+body.climax .shockwave      { animation: shock 1.6s cubic-bezier(.1, .8, .3, 1) forwards; }
+body.climax .shockwave.late { animation: shock 2.4s .1s ease-out forwards; }
+
+/* ---------- Raven's soul-self ---------- */
+.soul {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  pointer-events: none;
+}
+.soul svg { width: min(80vw, 110vh, 880px); height: auto; }
+.soul-eyes { filter: drop-shadow(0 0 8px #ff3d6e) drop-shadow(0 0 18px #ff3d6e); }
+body.climax .soul { animation: soul-rise 4.2s 0s cubic-bezier(.3, .1, .2, 1) both; }
+
+/* ---------- Violent flash ---------- */
+.flash {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, #fff 0%, #e9d5ff 25%, #a855f7 60%, #4c1d95 100%);
+}
+body.climax .flash { animation: flash 1.1s ease-out forwards; }
+
+/* ==========================================================================
+   PRE-WARM — the heavy climax layers (big glows, blurred SVG) are given their
+   own GPU layers and are painted at ~0 opacity during the charge, so the
+   browser has already done the expensive work when the audio ends.
+   ========================================================================== */
+.cosmos, .rift, .shockwave, .soul, .flash { will-change: opacity, transform; }
+body.charging .rift,
+body.charging .shockwave,
+body.charging .soul,
+body.charging .flash { opacity: .001; }
+
+/* ==========================================================================
+   KEYFRAMES
+   ========================================================================== */
+@keyframes spin     { to { transform: rotate(360deg); } }
+@keyframes twinkle  { from { opacity: .55; } to { opacity: 1; } }
+
+@keyframes ring-pulse {
+  0%   { transform: scale(1);    opacity: .7; }
+  100% { transform: scale(1.35); opacity: 0;  }
+}
+
+@keyframes rift-open {
+  0%   { opacity: 1; transform: scale(.05) rotate(0deg); }   /* visible on the first frame */
+  55%  { opacity: 1; transform: scale(1.5) rotate(120deg); }
+  100% { opacity: 0; transform: scale(5)   rotate(260deg); }
+}
+
+@keyframes shock {
+  0%   { opacity: 1; transform: scale(.1); }
+  100% { opacity: 0; transform: scale(14); }
+}
+
+@keyframes soul-rise {
+  0%   { opacity: 0; transform: scale(.1); }
+  5%   { opacity: 1; transform: scale(.35); }
+  60%  { opacity: 1; transform: scale(1.7); }
+  85%  { opacity: .9; transform: scale(3.4); }
+  100% { opacity: 0; transform: scale(6.5); }
+}
+
+/* Stutter flash: bright, dim, bright, fade */
+@keyframes flash {
+  0%   { opacity: 1; }      /* instant white-out on the exact frame the audio ends */
+  10%  { opacity: .15; }
+  16%  { opacity: .85; }
+  28%  { opacity: .05; }
+  36%  { opacity: .4; }
+  100% { opacity: 0; }
+}
+@keyframes flash-soft {
+  0%   { opacity: 0; }
+  20%  { opacity: .3; }
+  100% { opacity: 0; }
+}
+
+/* ==========================================================================
+   RESPONSIVE + ACCESSIBILITY
+   ========================================================================== */
+@media (max-height: 640px) {
+  .sigil { --sigil: min(80vw, 46vh, 560px); }
+  .cast  { padding: .65rem 2.2rem; font-size: 1.1rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cast::before,
+  .stars,
+  .cosmos::before { animation: none; }
+  body.climax .flash { animation: flash-soft 1.2s ease-out forwards; }
+}
